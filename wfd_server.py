@@ -1,4 +1,5 @@
 import socket
+import sys
 from rtsp import *
 
 
@@ -110,9 +111,11 @@ class WfdServer:
 
 
 def main():
-    print("hello")
+    print("WFD test server v0.1")
     server = WfdServer()
-    server.serve_port(7236)
+    rtsp_port = int(sys.argv[1]) if len(sys.argv) == 2 else 7236
+    print('RTSP server port ' + str(rtsp_port))
+    server.serve_port(rtsp_port)
 
 
 if __name__ == "__main__":
