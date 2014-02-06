@@ -1,6 +1,11 @@
 VERSION = "RTSP/1.0"
+DEFAULT_SERVER_PORT = 7236
 
-
+def message_from_string(string):
+    if string.startswith('RTSP'):
+        return response_from_string(string)
+    else:
+        return request_from_string(string)
 
 def request_from_string(string):
   if "\r\n\r\n" not in string:
@@ -50,7 +55,7 @@ def response_from_string(string):
   return (RtspResponse(int(status), headers, content), length)
 
 
-class RtspMessage:
+class RtspMessage(object):
 
   def __init__(self, headers={}, content=None):
     self.version = VERSION
@@ -64,6 +69,14 @@ class RtspMessage:
       self.headers["Content-Length"] = len(content.data)
     else:
       self.content = None
+
+  @property
+  def cseq(self):
+      return int(self.headers['CSeq'])
+
+  @cseq.setter
+  def cseq(self, value):
+      self.headers['CSeq'] = str(value)
 
   def __str__(self):
     lines = []
@@ -82,7 +95,7 @@ class RtspMessage:
 class RtspRequest(RtspMessage):
 
   def __init__(self, method, url="*", headers={}, content=None):
-    super().__init__(headers, content)
+    super(RtspRequest, self).__init__(headers, content)
     self.method = method
     self.url = url
 
@@ -91,24 +104,70 @@ class RtspRequest(RtspMessage):
 
 
 class RtspResponse(RtspMessage):
-  STATUSES = { 200: "OK" }
+  STATUSES = {
+      100: 'Continue',
+      200: 'OK',
+      201: 'Created',
+      250: 'Low on Storage Space',
+      300: 'Multiple Choices',
+      301: 'Moved Permanently',
+      302: 'Moved Temporarily',
+      303: 'See Other',
+      304: 'Not Modified',
+      305: 'Use Proxy',
+      400: 'Bad Request',
+      401: 'Unauthorized',
+      402: 'Payment Required',
+      403: 'Forbidden',
+      404: 'Not Found',
+      405: 'Method Not Allowed',
+      406: 'Not Acceptable',
+      407: 'Proxy Authentication Required',
+      408: 'Request Time-out',
+      410: 'Gone',
+      411: 'Length Required',
+      412: 'Precondition Failed',
+      413: 'Request Entity Too Large',
+      414: 'Request-URI Too Large',
+      415: 'Unsupported Media Type',
+      451: 'Parameter Not Understood',
+      452: 'Conference Not Found',
+      453: 'Not Enough Bandwidth',
+      454: 'Session Not Found',
+      455: 'Method Not Valid in This State',
+      456: 'Header Field Not Valid for Resource',
+      457: 'Invalid Range',
+      458: 'Parameter Is Read-Only',
+      459: 'Aggregate operation not allowed',
+      460: 'Only aggregate operation allowed',
+      461: 'Unsupported transport',
+      462: 'Destination unreachable',
+      463: 'Key management Failure',
+      500: 'Internal Server Error',
+      501: 'Not Implemented',
+      502: 'Bad Gateway',
+      503: 'Service Unavailable',
+      504: 'Gateway Time-out',
+      505: 'RTSP Version not supported',
+      551: 'Option not supported',
+  }
 
   def __init__(self, status=200, headers={}, content=None):
-    super().__init__(headers, content)
+    super(RtspResponse, self).__init__(headers, content)
     self.status = status
 
   def _get_status_line(self):
     return "{0} {1} {2}".format(self.version, self.status, self.STATUSES[self.status])
 
 
-class RtspContent:
+class RtspContent(object):
 
   def __init__(self, type, data):
     self.type = type
     self.data = data
 
 
-class RtspEndpoint:
+class RtspEndpoint(object):
 
   def __init__(self, socket, receiver):
     self.socket = socket
